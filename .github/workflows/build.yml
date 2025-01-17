@@ -1,0 +1,29 @@
+name: Build and Push containers
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  base-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        biosim-jupyter-base: [hub-5.2.1-2025-01-15]
+    name: workshop-build
+    steps:
+      - name: Authenticate with harbor
+        uses: docker/login-action@v3
+        with:
+          registry: harbor.stfc.ac.uk
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+
+      - uses: actions/checkout@v4
+
+      - name: Build and Push image to Harbor
+        run: |
+          docker build . --build-arg BASE_IMAGE=${{ matrix.biosim-jupyter-base }} -t harbor.stfc.ac.uk/biosimulation-cloud/biosim-structure-validation-workshop:${{ github.ref_name }}-$(date +'%Y-%m-%d')
+          docker push harbor.stfc.ac.uk/biosimulation-cloud/biosim-structure-validation-workshop:${{ github.ref_name }}-$(date +'%Y-%m-%d')
+
