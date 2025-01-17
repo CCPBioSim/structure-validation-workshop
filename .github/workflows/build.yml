@@ -24,6 +24,6 @@ jobs:
 
       - name: Build and Push image to Harbor
         run: |
-          docker build . --build-arg BASE_IMAGE=${{ matrix.biosim-jupyter-base }} -t harbor.stfc.ac.uk/biosimulation-cloud/biosim-python-workshop:${{ github.ref_name }}-$(date +'%Y-%m-%d')
-          docker push harbor.stfc.ac.uk/biosimulation-cloud/biosim-python-workshop:${{ github.ref_name }}-$(date +'%Y-%m-%d')
+          docker build . --build-arg BASE_IMAGE=${{ matrix.biosim-jupyter-base }} -t harbor.stfc.ac.uk/biosimulation-cloud/biosim-structure-validation-workshop:${{ github.ref_name }}-$(date +'%Y-%m-%d')
+          docker push harbor.stfc.ac.uk/biosimulation-cloud/biosim-structure-validation-workshop:${{ github.ref_name }}-$(date +'%Y-%m-%d')
 
