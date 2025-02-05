@@ -8,9 +8,6 @@ LABEL maintainer="James Gebbie-Rayet <james.gebbie@stfc.ac.uk>"
 USER $NB_USER
 WORKDIR $HOME
 
-# Install nb env deps
-RUN pip install jupyterhub-tmpauthenticator
-
 # Install workshop deps
 RUN pip install requests
 
