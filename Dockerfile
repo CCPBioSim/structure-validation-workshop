@@ -1,5 +1,5 @@
 # Start with BioSim base image.
-ARG BASE_IMAGE=hub-5.2.1-2025-01-15
+ARG BASE_IMAGE=latest
 FROM harbor.stfc.ac.uk/biosimulation-cloud/biosim-jupyter-base:$BASE_IMAGE
 
 LABEL maintainer="James Gebbie-Rayet <james.gebbie@stfc.ac.uk>"
