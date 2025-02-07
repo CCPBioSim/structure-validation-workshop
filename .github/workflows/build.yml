@@ -1,4 +1,4 @@
-name: Build workshop
+name: structure validation workshop
 
 on:
   repository_dispatch:
