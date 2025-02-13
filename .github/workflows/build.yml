@@ -6,8 +6,8 @@ on:
 
 env:
   TAG: ${{ github.event.client_payload.tag }}
-  REGISTRY: "harbor.stfc.ac.uk"
-  REPO: "biosimulation-cloud"
+  REGISTRY: "ghcr.io"
+  REPO: "jimboid"
   IMAGE_NAME: biosim-structure-validation-workshop
 
 jobs:
@@ -23,14 +23,14 @@ jobs:
           -t ${{ env.REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE_NAME }}:${{ env.TAG }} \
           -t ${{ env.REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE_NAME }}:latest
 
-      - name: Authenticate with harbor
-        uses: docker/login-action@v3
+      - name: Authenticate with GHCR
+        uses: docker/login-action@v3.3.0
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ secrets.HARBOR_USERNAME }}
-          password: ${{ secrets.HARBOR_PASSWORD }}
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.BUILD_TOKEN}}
 
-      - name: Push to Harbor
+      - name: Push image
         run: |
           docker push --all-tags ${{ env.REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE_NAME }}
 
