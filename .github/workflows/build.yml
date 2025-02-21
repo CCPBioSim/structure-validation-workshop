@@ -7,30 +7,52 @@ on:
 env:
   TAG: ${{ github.event.client_payload.tag }}
   REGISTRY: "ghcr.io"
-  REPO: "jimboid"
-  IMAGE_NAME: biosim-structure-validation-workshop
+  IMAGE: ${{ github.repository }}
 
 jobs:
   base-build:
     runs-on: ubuntu-24.04
     name: workshop-build
     steps:
-      - uses: actions/checkout@v4
+      - name: checkout
+        uses: actions/checkout@v4
 
-      - name: Build image
-        run: |
-          docker build . --build-arg BASE_IMAGE=${{ env.TAG }} \
-          -t ${{ env.REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE_NAME }}:${{ env.TAG }} \
-          -t ${{ env.REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE_NAME }}:latest
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
+          tags: |
+            latest
+            ${{ env.TAG }}
+          labels: |
+            annotation-index.org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            annotation-index.org.opencontainers.image.licenses=MIT
+            annotation-index.org.opencontainers.image.description=A repository containing the build steps for the ccpbiosim workshop on Structure Validation.
+        env:
+          DOCKER_METADATA_ANNOTATIONS_LEVELS: manifest,index
+
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v3.4.0
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v3.9.0
 
       - name: Authenticate with GHCR
+        id: ghcr-auth
         uses: docker/login-action@v3.3.0
         with:
           registry: ghcr.io
           username: ${{github.actor}}
           password: ${{secrets.BUILD_TOKEN}}
 
-      - name: Push image
-        run: |
-          docker push --all-tags ${{ env.REGISTRY }}/${{ env.REPO }}/${{ env.IMAGE_NAME }}
-
+      - name: Build and push
+        id: build-push
+        uses: docker/build-push-action@v6.14.0
+        with:
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          annotations: ${{ steps.meta.outputs.annotations }}
