@@ -3,9 +3,14 @@ name: build
 on:
   repository_dispatch:
     types: [build]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Base container version tag'
+        required: true
+        default: 'null'
 
 env:
-  TAG: ${{ github.event.client_payload.tag }}
   REGISTRY: "ghcr.io"
   IMAGE: ${{ github.repository }}
 
@@ -14,6 +19,15 @@ jobs:
     runs-on: ubuntu-24.04
     name: workshop-build
     steps:
+      - name: tag
+        id: version-tag
+        run: |
+          if [ ${{ github.event.inputs.tag }} != 'null' ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          fi
+
       - name: checkout
         uses: actions/checkout@v4
 
@@ -24,7 +38,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE }}
           tags: |
             latest
-            ${{ env.TAG }}
+            ${{ steps.version-tag.outputs.tag }}
           labels: |
             annotation-index.org.opencontainers.image.source=https://github.com/${{ github.repository }}
             annotation-index.org.opencontainers.image.licenses=MIT
