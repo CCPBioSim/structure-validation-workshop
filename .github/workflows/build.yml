@@ -52,7 +52,7 @@ jobs:
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3.9.0
+        uses: docker/setup-buildx-action@v3.10.0
 
       - name: Authenticate with GHCR
         id: ghcr-auth
