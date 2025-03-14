@@ -56,7 +56,7 @@ jobs:
 
       - name: Authenticate with GHCR
         id: ghcr-auth
-        uses: docker/login-action@v3.3.0
+        uses: docker/login-action@v3.4.0
         with:
           registry: ghcr.io
           username: ${{github.actor}}
