@@ -126,3 +126,26 @@ jobs:
       - name: Inspect image
         run: |
           docker buildx imagetools inspect ghcr.io/${{ github.repository }}:dev
+
+  test:
+    runs-on: ubuntu-24.04
+    name: orchestrate tests
+    needs: 
+      - merge
+    steps:
+      - name: tag
+        id: version-tag
+        run: |
+          if [ ${{ github.event.inputs.tag }} != 'null' ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Dispatch Tests
+        uses: peter-evans/repository-dispatch@v3.0.0
+        with:
+          token: ${{ secrets.BUILD_TOKEN }}
+          repository: ${{ github.repository }}
+          event-type: test    
+          client-payload: '{"tag": "${{ steps.version-tag.outputs.tag }}"}'
