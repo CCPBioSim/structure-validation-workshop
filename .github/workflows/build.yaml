@@ -127,7 +127,7 @@ jobs:
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:${{ needs.build.outputs.tag }}
+          docker buildx imagetools inspect ghcr.io/${{ github.repository }}:dev
 
   tests:
     strategy:
