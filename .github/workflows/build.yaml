@@ -1,14 +1,9 @@
-name: build
-
+name: ci/cd
 on:
+  pull_request:
   repository_dispatch:
     types: [build]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Base container version tag'
-        required: true
-        default: 'null'
 
 jobs:
   build:
@@ -19,7 +14,9 @@ jobs:
           - linux/amd64
           - linux/arm64
     runs-on: ${{ matrix.platform == 'linux/amd64' && 'ubuntu-24.04' || matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' }}
-    name: ${{ matrix.platform }} workshop-build
+    name: build ${{ matrix.platform }}
+    outputs:
+      tag: ${{ steps.envvars.outputs.tag }}
     steps:
       - name: checkout
         uses: actions/checkout@v5.0.0
@@ -29,6 +26,11 @@ jobs:
         run: |
           platform=${{ matrix.platform }}
           echo "PLATFORM_PAIR=${platform//\//-}" >> $GITHUB_ENV
+          if [ ${{ github.event.client_payload.tag }} != 'null' ]; then
+            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          fi
 
       - name: Metadata
         id: meta
@@ -73,6 +75,7 @@ jobs:
 
   merge:
     runs-on: ubuntu-24.04
+    name: merge into multiarch manifest
     needs:
       - build
     steps:
@@ -100,8 +103,7 @@ jobs:
         uses: docker/metadata-action@v5.8.0
         with:
           images: ghcr.io/${{ github.repository }}
-          tags: |
-            dev
+          tags: dev
 
       - name: Create manifest list and push
         id: annotate
@@ -127,25 +129,48 @@ jobs:
         run: |
           docker buildx imagetools inspect ghcr.io/${{ github.repository }}:dev
 
-  test:
-    runs-on: ubuntu-24.04
-    name: orchestrate tests
+  tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    runs-on: ${{ matrix.platform == 'linux/amd64' && 'ubuntu-latest' || matrix.platform == 'linux/arm64' && 'ubuntu-24.04-arm' }}
+    name: testing on ${{ matrix.platform }} 
+    timeout-minutes: 360
     needs: 
+      - build
       - merge
     steps:
-      - name: tag
-        id: version-tag
-        run: |
-          if [ ${{ github.event.inputs.tag }} != 'null' ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
-          else
-            echo "tag=${{ github.event.client_payload.tag }}" >> $GITHUB_OUTPUT
-          fi
 
-      - name: Dispatch Tests
-        uses: peter-evans/repository-dispatch@v3.0.0
+      - name: Test notebooks
+        shell: bash
+        run: |
+          docker run -t ghcr.io/${{ github.repository }}:dev bash -c " \
+            pip install pytest nbmake; \
+            find . -name '*.ipynb' | pytest --nbmake --nbmake-timeout=3600; "
+
+  tags:
+    runs-on: ubuntu-24.04
+    if: github.event_name != 'pull_request'
+    name: add tags
+    needs:
+      - build
+      - tests
+    steps:
+      - name: Authenticate with GHCR
+        id: auth
+        uses: docker/login-action@v3.5.0
         with:
-          token: ${{ secrets.BUILD_TOKEN }}
-          repository: ${{ github.repository }}
-          event-type: test    
-          client-payload: '{"tag": "${{ steps.version-tag.outputs.tag }}"}'
+          registry: "ghcr.io"
+          username: ${{github.actor}}
+          password: ${{secrets.BUILD_TOKEN}}
+
+      - name: tag release versions
+        shell: bash
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/${{ github.repository }}:latest \
+            --tag ghcr.io/${{ github.repository }}:${{ needs.build.outputs.tag }} \
+            ghcr.io/${{ github.repository }}:dev
