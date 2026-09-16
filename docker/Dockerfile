@@ -9,7 +9,8 @@ USER $NB_USER
 WORKDIR $HOME
 
 # Install workshop deps
-RUN pip install requests
+RUN pip install --no-cache-dir \
+    requests==2.34.2
 
 COPY --chown=1000:100 . .
 RUN rm -rf LICENSE README.md docker .git .github
